@@ -11,6 +11,8 @@ import com.thinklab.application.usecase.InitiateLicenseUseCase;
 import com.thinklab.application.usecase.ReportUsageUseCase;
 import com.thinklab.application.usecase.ReportUsageUseCase.Reported;
 import com.thinklab.application.usecase.RetrieveLicensesUseCase;
+import com.thinklab.application.usecase.RetrievePromisesUseCase;
+import com.thinklab.application.dto.response.PromiseResponse;
 import com.thinklab.application.usecase.RetrieveLicenseAuditLogUseCase;
 import com.thinklab.application.usecase.RetrieveLicenseUseCase;
 import com.thinklab.application.usecase.RetrieveUsageReportUseCase;
@@ -56,9 +58,10 @@ class LicenseRegistryControllerTest {
     @Mock private ReportUsageUseCase reportUsage;
     @Mock private RetrieveUsageReportUseCase retrieveReport;
     @Mock private RetrieveUsageReportsUseCase retrieveReports;
+    @Mock private RetrievePromisesUseCase retrievePromises;
 
     private LicenseRegistryController controller() {
-        return new LicenseRegistryController(initiateLicense, retrieveLicense, retrieveLicenses, updateLicense, controlLicense, licenseAuditLog, reportUsage, retrieveReport, retrieveReports);
+        return new LicenseRegistryController(initiateLicense, retrieveLicense, retrieveLicenses, updateLicense, controlLicense, licenseAuditLog, reportUsage, retrieveReport, retrieveReports, retrievePromises);
     }
 
     private LicenseResponse licenseResponse() {
@@ -128,5 +131,13 @@ class LicenseRegistryControllerTest {
 
         StepVerifier.create(controller().retrieveReport(id, tenantHeader, ROLE)).assertNext(response -> assertEquals(HttpStatus.OK, response.getStatus())).verifyComplete();
         StepVerifier.create(controller().retrieveReports(tenantHeader, ROLE, licenseId, 10)).assertNext(list -> assertEquals(1, list.size())).verifyComplete();
+    }
+
+    @Test
+    @DisplayName("the promises route passes the tenant, the role and the two parameters (platform ADR-001)")
+    void promises() {
+        when(retrievePromises.execute(tenant, 7, 50, ROLE)).thenReturn(Mono.just(List.of(new PromiseResponse(UUID.randomUUID(), "P", null, "KEPT", null, "ACTIVE", java.time.Instant.parse("2026-10-20T12:00:00Z")))));
+
+        StepVerifier.create(controller().promises(tenantHeader, ROLE, 7, 50)).assertNext(promises -> assertEquals(1, promises.size())).verifyComplete();
     }
 }

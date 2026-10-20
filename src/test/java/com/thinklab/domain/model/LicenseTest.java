@@ -163,4 +163,29 @@ class LicenseTest {
         rejects(() -> License.reconstitute(id, org, "P", null, 5, 90, 24, null, null, null, null, null, null, null, null));
         assertThrows(UnsupportedOperationException.class, () -> full.getAuditTrail().clear());
     }
+
+    @Test
+    @DisplayName("the promise is broken (LICENSE_OVER_LIMIT) over the limit, kept when OK or near it, and not judged when paused or without a count (platform ADR-001)")
+    void promise() {
+        assertEquals(Promise.broken("LICENSE_OVER_LIMIT"), stored(LicenseStatus.ACTIVE, 120, NOW).promise(NOW));
+        assertEquals(Promise.kept(), stored(LicenseStatus.ACTIVE, 50, NOW).promise(NOW));
+        assertEquals(Promise.kept(), stored(LicenseStatus.ACTIVE, 95, NOW).promise(NOW));
+        assertEquals(Promise.notJudged(), stored(LicenseStatus.ACTIVE, null, null).promise(NOW));
+        assertEquals(Promise.notJudged(), stored(LicenseStatus.PAUSED, 120, NOW).promise(NOW));
+        assertEquals(Promise.Verdict.BROKEN, Promise.broken("X").verdict());
+        assertEquals("X", Promise.broken("X").code());
+    }
+
+    @Test
+    @DisplayName("a licence changed when it was updated or when its latest count was measured, whichever is later")
+    void changedAt() {
+        License counted = stored(LicenseStatus.ACTIVE, 50, NOW.minus(Duration.ofHours(2)));
+        License noCount = stored(LicenseStatus.ACTIVE, null, null);
+        License updatedLater = License.reconstitute(UUID.randomUUID(), org, "P", Unit.USER, 100, 90, 24, null, null, LicenseStatus.ACTIVE, NOW.minus(Duration.ofDays(40)),
+                NOW.minus(Duration.ofHours(1)), 50, NOW.minus(Duration.ofDays(3)), List.of());
+
+        assertEquals(NOW.minus(Duration.ofHours(2)), counted.changedAt());
+        assertEquals(NOW.minus(Duration.ofDays(40)), noCount.changedAt());
+        assertEquals(NOW.minus(Duration.ofHours(1)), updatedLater.changedAt());
+    }
 }
