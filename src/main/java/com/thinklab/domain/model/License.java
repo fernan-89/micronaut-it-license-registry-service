@@ -189,6 +189,23 @@ public class License {
 
     public UUID getId() { return id; }
     public UUID getOrganisationId() { return organisationId; }
+    /**
+     * Whether the licence's promise is being kept on {@code now} (platform ADR-001): broken ({@code LICENSE_OVER_LIMIT}) when more seats are in use than were
+     * bought, kept when OK or only near the limit (a notice on the screen, not an incident), not judged when paused or without a count yet.
+     */
+    public Promise promise(Instant now) {
+        return switch (assess(now).level()) {
+            case OVER_LIMIT -> Promise.broken("LICENSE_OVER_LIMIT");
+            case OK, NEAR_LIMIT -> Promise.kept();
+            case PAUSED, NO_DATA -> Promise.notJudged();
+        };
+    }
+
+    /** The last moment the licence or the facts it is judged on changed: an update, or the latest count measured. */
+    public Instant changedAt() {
+        return lastMeasuredAt != null && lastMeasuredAt.isAfter(updatedAt) ? lastMeasuredAt : updatedAt;
+    }
+
     public String getProduct() { return product; }
     public Unit getUnit() { return unit; }
     public int getEntitled() { return entitled; }

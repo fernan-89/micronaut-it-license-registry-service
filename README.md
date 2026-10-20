@@ -33,6 +33,7 @@ and, with platform security on, comes from the verified token.
 |---|---|
 | initiate | `POST /it-license-registry/v1/initiate` `{"product":"Office 365 E3","unit":"USER","entitled":250,"warnPercent":90,"reportEveryHours":24,"vendorId":"<uuid, optional>","agreementId":"<uuid, optional>"}` (`unit`: USER, DEVICE, INSTALL, CORE, OTHER) |
 | retrieve | `GET /it-license-registry/v1/{id}/retrieve` (judged now) |
+| promises/retrieve | `GET /it-license-registry/v1/promises/retrieve?changedWithinDays=&limit=` (the promises contract, ADR-034: every broken promise and every one that changed lately, each with `verdict`, a fixed `code` when broken, `status` and `changedAt`) |
 | retrieve (collection) | `GET /it-license-registry/v1/retrieve?status=&unit=&vendorId=&level=` (oldest first) |
 | update | `PUT /it-license-registry/v1/{id}/update` (the whole definition again, in any status) |
 | control/pause | `PUT /it-license-registry/v1/{id}/control/pause` (ACTIVE -> PAUSED: no longer judged) |
@@ -72,7 +73,7 @@ has no scheduler.
 ## Architecture decisions
 
 001 hexagonal architecture · 005 UUID identity sovereignty and audit tracing · 013 BIAN conventions · 019 HTTP 409 for state conflicts ·
-030 the tool counts, the registry keeps the counts · 031 a licence is judged when read · 032 staff only · 033 guarded writes, unique backstops and expiring reports.
+030 the tool counts, the registry keeps the counts · 031 a licence is judged when read · 032 staff only · 033 guarded writes, unique backstops and expiring reports · 034 the promises contract.
 
 ## License
 

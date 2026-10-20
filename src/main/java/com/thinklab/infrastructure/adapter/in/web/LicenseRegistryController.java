@@ -3,9 +3,11 @@ package com.thinklab.infrastructure.adapter.in.web;
 import com.thinklab.application.dto.request.InitiateLicenseRequest;
 import com.thinklab.application.dto.request.ReportUsageRequest;
 import com.thinklab.application.dto.request.UpdateLicenseRequest;
+import com.thinklab.application.dto.response.PromiseResponse;
 import com.thinklab.application.dto.response.AuditEntryResponse;
 import com.thinklab.application.dto.response.LicenseResponse;
 import com.thinklab.application.dto.response.UsageReportResponse;
+import com.thinklab.application.usecase.RetrievePromisesUseCase;
 import com.thinklab.application.usecase.ControlLicenseUseCase;
 import com.thinklab.application.usecase.InitiateLicenseUseCase;
 import com.thinklab.application.usecase.ReportUsageUseCase;
@@ -65,9 +67,13 @@ public class LicenseRegistryController {
     private final RetrieveUsageReportUseCase retrieveReport;
     private final RetrieveUsageReportsUseCase retrieveReports;
 
+    private final RetrievePromisesUseCase retrievePromises;
+
     public LicenseRegistryController(InitiateLicenseUseCase initiateLicense, RetrieveLicenseUseCase retrieveLicense, RetrieveLicensesUseCase retrieveLicenses,
                                     UpdateLicenseUseCase updateLicense, ControlLicenseUseCase controlLicense, RetrieveLicenseAuditLogUseCase licenseAuditLog,
-                                    ReportUsageUseCase reportUsage, RetrieveUsageReportUseCase retrieveReport, RetrieveUsageReportsUseCase retrieveReports) {
+                                    ReportUsageUseCase reportUsage, RetrieveUsageReportUseCase retrieveReport, RetrieveUsageReportsUseCase retrieveReports,
+            RetrievePromisesUseCase retrievePromises) {
+        this.retrievePromises = retrievePromises;
         this.initiateLicense = initiateLicense;
         this.retrieveLicense = retrieveLicense;
         this.retrieveLicenses = retrieveLicenses;
@@ -104,6 +110,16 @@ public class LicenseRegistryController {
                                                         @QueryValue @Nullable LicenseStatus status, @QueryValue @Nullable Unit unit, @QueryValue @Nullable UUID vendorId,
                                                         @QueryValue @Nullable Level level) {
         return Mono.defer(() -> retrieveLicenses.execute(UUID.fromString(tenantId), status, unit, vendorId, level, role).collectList());
+    }
+
+    /**
+     * Behavior Qualifier: {@code promises/retrieve} (platform ADR-001, the promises contract). Every broken promise and every one that changed within the days asked
+     * (30 unless asked, 1 to 365), at most {@code limit} of each (500 unless asked, at most 1000).
+     */
+    @Get("/promises/retrieve")
+    public Mono<List<PromiseResponse>> promises(@Header(TENANT_HEADER) @NotBlank String tenantId, @Header(ROLE_HEADER) @Nullable String role,
+                                                @QueryValue @Nullable Integer changedWithinDays, @QueryValue @Nullable Integer limit) {
+        return Mono.defer(() -> retrievePromises.execute(UUID.fromString(tenantId), changedWithinDays, limit, role));
     }
 
     /** Behavior Qualifier: {@code update}. The whole definition again. */
